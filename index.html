@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="da-dk">
+
+<head>
+  <meta charset="utf-8">
+  <title>XSS Demo</title>
+	<script>
+		function setCookie(name, value, days) {
+			var expires = "";
+			if (days) {
+				var date = new Date();
+				date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+				expires = "; expires=" + date.toUTCString();
+			}
+			document.cookie = name + "=" + (value || "") + expires + "; path=/";
+		}
+
+		function getCookie(name) {
+			var nameEQ = name + "=";
+			var ca = document.cookie.split(';');
+			for (var i = 0; i < ca.length; i++) {
+				var c = ca[i];
+				while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+				if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+			}
+			return null;
+		}
+	</script>
+	<style>
+		html {
+			height: 110vh;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>XSS Demo</h1>
+	<section>
+		<h2>Reflected XSS</h2>
+		<label>Hvad hedder du?</label>
+		<input id="rxssInput" /><button id="rxssButton">Submit</button>
+		
+		<script type="text/javascript">
+		    // set qs
+				rxssButton.addEventListener('click', () => {
+					window.location.href=window.location.href.split('?')[0] + '?q=' + rxssInput.value
+				})
+				// load and show from qs
+				var tag = document.createElement('p')
+				tag.innerHTML = 'Hej ' +  decodeURIComponent(window.location.href.split('?')[1].substring(2))
+				rxssButton.parentNode.insertBefore(tag, rxssButton.nextSibling)
+		</script>
+	</section>
+
+	<section>
+		<h2>Stored XSS</h2>
+		<label>Hvad hedder du?</label>
+		<input id="sxssInput" /><button id="sxssButton">Submit</button>
+		
+		<script type="text/javascript">
+		    // save in cookie
+				sxssButton.addEventListener('click', () => {
+					setCookie('q', sxssInput.value, 1)
+				})
+				// load and show from cookie
+				var tag = document.createElement('p')
+				tag.innerHTML = 'Hej ' +  getCookie('q')
+				sxssButton.parentNode.insertBefore(tag, sxssButton.nextSibling)
+		</script>
+	</section>
+
+	<section>
+		<h2>DOM-based XSS</h2>
+		<p id="dxssHook"></p>
+		<script type="text/javascript">
+			function showLocation() {
+				dxssHook.innerHTML = decodeURIComponent(window.location.hash.split("#")[1])
+			}
+			window.addEventListener('scroll', () => {
+				window.location.hash = window.location.hash !== "" ? +window.location.hash.split("#")[1] + 10 : 10
+				showLocation()
+			})
+			showLocation()
+		</script>
+	</section>
+</body>
+
+</html>
+
+Reflected XSS = load fra querystring og output
+Stored XSS = Input gemt i databasen og hentet på siden
+DOM-based XSS = load fra hash og output
